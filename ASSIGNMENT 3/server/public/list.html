@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product List</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="container mt-5">
+    <h2 class="text-center">Product List</h2>
+    <div class="w-100 d-flex justify-content-center align-items-center mb-3">
+        <a href="product.html" class="btn btn-primary">Add New Product</a>
+    </div>
+    <div id="productList" class="row mt-4"></div>
+    <div class="text-center mt-3">
+        <button id="loadMore" class="btn btn-secondary">Show More</button>
+    </div>
+    
+    <script>
+        let currentPage = 1; // Track the current page of products
+        const perPage = 10; // Number of products to load per page
+
+        async function fetchProducts(page = 1) {
+            try {
+                const response = await fetch(`/api/products?page=${page}&perPage=${perPage}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                populateProductList(data.products);
+                if (data.products.length < perPage) {
+                    document.getElementById('loadMore').style.display = 'none'; // Hide button if no more products
+                }
+            } catch (error) {
+                console.error('Error fetching products:', error);
+                document.getElementById('productList').innerHTML = '<p class="text-danger">Failed to load products.</p>';
+            }
+        }
+
+        function populateProductList(products) {
+            const productListDiv = document.getElementById('productList');
+            products.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'col-md-4 mb-3';
+                productCard.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">${product.name}</h5>
+                            <p class="card-text">${product.description}</p>
+                            <p class="card-text"><strong>Price: $${product.price.toFixed(2)}</strong></p>
+                            <p class="card-text"><strong>Stock: ${product.stock}</strong></p>
+                            <button class="btn btn-warning" onclick="editProduct('${product._id}')">Update</button>
+                            <button class="btn btn-danger" onclick="deleteProduct('${product._id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+                productListDiv.appendChild(productCard);
+            });
+        }
+
+        async function deleteProduct(productId) {
+            try {
+                const response = await fetch(`/api/products/${productId}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    alert('Product deleted successfully');
+                    window.location.reload(); // Reload to refresh the list
+                } else {
+                    const errorData = await response.json();
+                    alert(`Error: ${errorData.message}`);
+                }
+            } catch (error) {
+                console.error('Error deleting product:', error);
+                alert('There was a problem deleting the product.');
+            }
+        }
+
+        function editProduct(productId) {
+            // Redirect to the edit page with the productId
+            window.location.href = `edit.html?id=${productId}`;
+        }
+
+        // Load initial products on page load
+        fetchProducts(currentPage);
+
+        // Load more products on button click
+        document.getElementById('loadMore').addEventListener('click', () => {
+            currentPage++;
+            fetchProducts(currentPage);
+        });
+    </script>
+</body>
+</html>
